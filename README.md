@@ -1,0 +1,1 @@
+# standup-journal-mcp
