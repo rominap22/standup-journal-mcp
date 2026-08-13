@@ -116,4 +116,4 @@ Check there for a Python traceback if `main.py` failed to start.
 
 Usually the issue is anything printed to stdout before the server starts. Stdio *is* the protocol channel for this transport, so a stray `print()` statement corrupts the connection. Use `logging` (which writes to stderr) instead of `print()` if you need to debug inside the server.
 
-Sources: [MCP docs — Connect local servers](https://modelcontextprotocol.io/docs/2026-07-28/develop/connect-local-servers), [Claude docs — MCP Apps troubleshooting](https://claude.com/docs/connectors/building/mcp-apps/troubleshooting)
+Sources: [MCP docs — Connect local servers](https://modelcontextprotocol.io/docs/2026-07-28/develop/connect-local-servers), [Claude docs — MCP Apps troubleshooting](https://claude.com/docs/connectors/building/mcp-apps/troubleshooting), [PyPi MCP Docs](https://pypi.org/project/mcp/)
