@@ -17,10 +17,7 @@ installed as a dependency.
 ### Step 2: Write the server
 
 Create `main.py` in the project root:
-
-\`\`\`python
 (paste the code above)
-\`\`\`
 
 This mirrors the PyPI quickstart skeleton (`from mcp.server import MCPServer`, `@mcp.tool()` decorators), swapped in with the standup journal's own tools:
 
