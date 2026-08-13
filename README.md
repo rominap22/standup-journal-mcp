@@ -76,14 +76,17 @@ Once `standup-journal` shows as connected under **Connectors** (Step 4), test it
    > "Log that I finished the login screen styling."
 
 Claude should call `log_task`. The first time, you'll get a permission prompt, approve it. Look for an expandable tool-call block in the chat showing the tool name and arguments used.
+![Permission Prompt](mcppermissions.png)
 
 2. **Log a blocker:**
    > "Log that I'm blocked on the AWS deployment because permissions are broken."
 
 3. **Check what's logged today:**
    > "What have I logged for today?"
+![Log Example1](logmcpexample.png)
+![Log Example2](logmcpexample1.png)
 
-   Should trigger `get_tasks_by_date` with today's date.
+Should trigger `get_tasks_by_date` with today's date.
 
 4. **Generate the standup report:**
    > "Generate my standup report."
