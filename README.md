@@ -6,10 +6,10 @@ This project follows [MCP Tutorial: Build Your First MCP Server](https://www.you
 
 From an empty repo, in your terminal:
 
-\`\`\`bash
+```bash
 uv init
 uv add "mcp[cli]"
-\`\`\`
+```
 
 This creates `pyproject.toml`, `uv.lock`, and a `.venv`, with `mcp[cli]`
 installed as a dependency.
@@ -35,9 +35,9 @@ Data lives in a local SQLite file at `~/.standup-journal/standups.db`
 
 From the project root:
 
-\`\`\`bash
+```bash
 uv run mcp install main.py
-\`\`\`
+```
 
 This imports `main.py`, reads the server's name (`"standup-journal"`, set
 via `MCPServer("standup-journal")`), and writes the launch command directly
@@ -50,7 +50,7 @@ INFO     Added server 'standup-journal' to Claude config
 INFO     Successfully installed standup-journal in Claude app
 \`\`\`
 
-**Fully quit Claude Desktop (not just the window) and reopen it** for the new server to show up. Your four tools — `log_task`, `get_tasks_by_date`, `generate_standup_report`, and (if added) `update_task_status` should then be available in chat.
+**Fully quit Claude Desktop (not just the window) and reopen it** for the new server to show up. Your tools — `log_task`, `update_task_status`, `get_tasks_by_date`, `get_tasks_between`, `search_tasks`, `list_tags`, `generate_standup_report`, `generate_exec_summary`, `generate_weekly_summary` — should then be available in chat.
 
 Under the hood, `mcp install` writes an entry that launches your server via `uv run`, pinned to the exact `mcp` version installed in your project, so Claude Desktop always runs it in the right environment, without you needing `standup-journal` on your system `PATH`.
 
@@ -64,7 +64,7 @@ Under the hood, `mcp install` writes an entry that launches your server via `uv 
 4. Click **Edit Config** — this opens `claude_desktop_config.json` in your default text editor. You should see a `standup-journal` entry under `mcpServers`, written there by `mcp install` in Step 3.
 5. Save the file (even with no changes) and **fully quit and reopen Claude Desktop** to load the tools.
 
-Once it restarts, click the **`+`** (or paperclip) icon in the chat box and select **Connectors** — `standup-journal` should be listed there, with `log_task`, `get_tasks_by_date`, and `generate_standup_report` available as tools.
+Once it restarts, click the **`+`** (or paperclip) icon in the chat box and select **Connectors** — `standup-journal` should be listed there, with your tools available.
 
 ## Testing in Claude Desktop
 
@@ -91,7 +91,7 @@ Should trigger `get_tasks_by_date` with today's date.
 4. **Generate the standup report:**
    > "Generate my standup report."
 
-   Should call `generate_standup_report` and return a bulleted, Slack-ready summary of yesterday's done items and open blockers.
+   Should call `generate_standup_report` and return a bulleted, Slack-ready summary of yesterday's done items, today's in-progress items, and open blockers.
 
 ### If a tool doesn't get called
 
@@ -117,3 +117,17 @@ Check there for a Python traceback if `main.py` failed to start.
 Usually the issue is anything printed to stdout before the server starts. Stdio *is* the protocol channel for this transport, so a stray `print()` statement corrupts the connection. Use `logging` (which writes to stderr) instead of `print()` if you need to debug inside the server.
 
 Sources: [MCP docs — Connect local servers](https://modelcontextprotocol.io/docs/2026-07-28/develop/connect-local-servers), [Claude docs — MCP Apps troubleshooting](https://claude.com/docs/connectors/building/mcp-apps/troubleshooting), [PyPi MCP Docs](https://pypi.org/project/mcp/)
+
+---
+
+## Additional tools (added after Step 2)
+
+- `update_task_status(task_id, status)` — resolve a blocker or change any logged task's status.
+- `log_task(..., tag?)` — optional free-text category, inferred from phrasing like "tag this as X" / "log under X", or set explicitly. No predefined list — invent tags as you go. Each tag gets a consistent royal-themed emoji (👑💎🦋🕯️ etc.), assigned automatically per tag name.
+- `get_tasks_by_date` / `get_tasks_between(start_date, end_date)` — both accept an optional `tag` filter.
+- `search_tasks(keyword)` — find past entries by keyword, any date/status.
+- `list_tags()` — all tags currently in use, with open task counts.
+- `generate_exec_summary(days=7)` — quick counts (done/in progress/blocked) plus open blockers.
+- `generate_weekly_summary(week_start?)` — 7-day rollup for retros or 1:1s.
+
+Talking naturally works across all of these — e.g. "Finished the login screen, still working on the API integration, tag it acme-client, and I'm blocked on AWS permissions" gets split into separate logged entries automatically.
