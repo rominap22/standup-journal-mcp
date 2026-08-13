@@ -45,10 +45,10 @@ into Claude Desktop's config file for you — no manual JSON editing needed.
 
 Example output:
 
-\`\`\`
+```
 INFO     Added server 'standup-journal' to Claude config
 INFO     Successfully installed standup-journal in Claude app
-\`\`\`
+```
 
 **Fully quit Claude Desktop (not just the window) and reopen it** for the new server to show up. Your tools — `log_task`, `update_task_status`, `get_tasks_by_date`, `get_tasks_between`, `search_tasks`, `list_tags`, `generate_standup_report`, `generate_exec_summary`, `generate_weekly_summary` — should then be available in chat.
 
@@ -99,9 +99,9 @@ Claude decides *whether* to call a tool based on phrasing. Try being more explic
 
 Verify the data actually landed by checking the SQLite file directly:
 
-\`\`\`bash
+```bash
 sqlite3 ~/.standup-journal/standups.db "SELECT * FROM tasks;"
-\`\`\`
+```
 
 (adjust the path if you set `STANDUP_DB_PATH`)
 
