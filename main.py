@@ -300,9 +300,42 @@ def _group_by_tag_lines(rows) -> list[str]:
     return lines
 
 
+def _group_by_tag_lines(rows) -> list[str]:
+    """Render rows as bullets, grouped under a sub-header per tag if any
+    row has a real (non-subtask) tag, otherwise as a flat bullet list.
+
+    Subtask-tagged rows (tag starts with "subtask:") never get their own
+    header, since _tag_label() intentionally returns "" for them — grouping
+    them under a blank "_:_" header looked broken. They're now rendered as
+    plain bullets alongside any other untagged/"Other" items instead.
+    """
+    if not rows:
+        return []
+
+    # A row counts as "really tagged" only if it has a tag AND that tag
+    # isn't a subtask marker (i.e. _tag_label would return something).
+    def has_real_tag(r):
+        return bool(r["tag"]) and not r["tag"].startswith("subtask:")
+
+    if not any(has_real_tag(r) for r in rows):
+        return [f"- {r['description']}" for r in rows]
+
+    grouped: dict[str, list[str]] = {}
+    for r in rows:
+        key = r["tag"] if has_real_tag(r) else "Other"
+        grouped.setdefault(key, []).append(r["description"])
+
+    lines: list[str] = []
+    for tag_name, descs in grouped.items():
+        header = _tag_label(tag_name) if tag_name != "Other" else "Other"
+        lines.append(f"  _{header}:_")
+        lines.extend(f"  - {d}" for d in descs)
+    return lines
+
+
 @mcp.tool()
 def generate_standup_report(include_weekly: bool = False, range_days: int = 7) -> str:
-    """Generate a clean, bulleted Slack standup message from yesterday and today.
+    """Generate a clean, bulleted standup message from yesterday and today.
 
     Automatically groups items by tag/project if any logged tasks have one.
     Set include_weekly=True to append a rollup covering the last `range_days`
@@ -310,6 +343,10 @@ def generate_standup_report(include_weekly: bool = False, range_days: int = 7) -
     format — Done / In Progress / Blocked — for that whole period, not just
     completed items, so it works for a weekly retro, a 1:1, or any custom
     stretch of time by adjusting range_days.
+
+    Uses standard Markdown (**bold**, _italic_, - bullets) so it renders
+    cleanly in Claude's chat UI. If pasting into Slack, swap ** for single
+    * around headers (Slack uses single asterisks for bold).
     """
     today = date.today().isoformat()
     yesterday = (date.today() - timedelta(days=1)).isoformat()
@@ -327,12 +364,12 @@ def generate_standup_report(include_weekly: bool = False, range_days: int = 7) -
         "SELECT * FROM tasks WHERE status = 'blocked'"
     ).fetchall()
 
-    lines = [f"*Standup — {today}*", "", "*Yesterday:*"]
-    lines += _group_by_tag_lines(done_yesterday) or ["• Nothing logged."]
-    lines += ["", "*Today:*"]
-    lines += _group_by_tag_lines(in_progress_today) or ["• Nothing logged yet."]
-    lines += ["", "*Blockers:*"]
-    lines += _group_by_tag_lines(blockers) or ["• None 🎉"]
+    lines = [f"**Standup — {today}**", "", "**Yesterday:**"]
+    lines += _group_by_tag_lines(done_yesterday) or ["- Nothing logged."]
+    lines += ["", "**Today:**"]
+    lines += _group_by_tag_lines(in_progress_today) or ["- Nothing logged yet."]
+    lines += ["", "**Blockers:**"]
+    lines += _group_by_tag_lines(blockers) or ["- None"]
 
     if include_weekly:
         start = (date.today() - timedelta(days=range_days - 1)).isoformat()
@@ -350,12 +387,12 @@ def generate_standup_report(include_weekly: bool = False, range_days: int = 7) -
             (start, today),
         ).fetchall()
 
-        lines += ["", f"*Rollup ({start} → {today}):*", "", "_Done:_"]
-        lines += _group_by_tag_lines(done_range) or ["• Nothing completed in this range."]
+        lines += ["", f"**Rollup ({start} to {today}):**", "", "_Done:_"]
+        lines += _group_by_tag_lines(done_range) or ["- Nothing completed in this range."]
         lines += ["", "_In Progress:_"]
-        lines += _group_by_tag_lines(in_progress_range) or ["• Nothing in progress in this range."]
+        lines += _group_by_tag_lines(in_progress_range) or ["- Nothing in progress in this range."]
         lines += ["", "_Blocked:_"]
-        lines += _group_by_tag_lines(blocked_range) or ["• None 🎉"]
+        lines += _group_by_tag_lines(blocked_range) or ["- None"]
 
     conn.close()
     return "\n".join(lines)
