@@ -301,11 +301,15 @@ def _group_by_tag_lines(rows) -> list[str]:
 
 
 @mcp.tool()
-def generate_standup_report(include_weekly: bool = False) -> str:
+def generate_standup_report(include_weekly: bool = False, range_days: int = 7) -> str:
     """Generate a clean, bulleted Slack standup message from yesterday and today.
 
     Automatically groups items by tag/project if any logged tasks have one.
-    Set include_weekly=True to append a 7-day rollup (for Friday retros or 1:1s).
+    Set include_weekly=True to append a rollup covering the last `range_days`
+    days (default 7). The rollup follows the standard three-question standup
+    format — Done / In Progress / Blocked — for that whole period, not just
+    completed items, so it works for a weekly retro, a 1:1, or any custom
+    stretch of time by adjusting range_days.
     """
     today = date.today().isoformat()
     yesterday = (date.today() - timedelta(days=1)).isoformat()
@@ -331,13 +335,27 @@ def generate_standup_report(include_weekly: bool = False) -> str:
     lines += _group_by_tag_lines(blockers) or ["• None 🎉"]
 
     if include_weekly:
-        start = (date.today() - timedelta(days=6)).isoformat()
-        done_week = conn.execute(
+        start = (date.today() - timedelta(days=range_days - 1)).isoformat()
+
+        done_range = conn.execute(
             "SELECT * FROM tasks WHERE log_date BETWEEN ? AND ? AND status = 'done' ORDER BY log_date ASC",
             (start, today),
         ).fetchall()
-        lines += ["", f"*Weekly Rollup ({start} → {today}):*"]
-        lines += [f"• {r['description']}" for r in done_week] or ["• Nothing logged."]
+        in_progress_range = conn.execute(
+            "SELECT * FROM tasks WHERE log_date BETWEEN ? AND ? AND status = 'in_progress' ORDER BY log_date ASC",
+            (start, today),
+        ).fetchall()
+        blocked_range = conn.execute(
+            "SELECT * FROM tasks WHERE log_date BETWEEN ? AND ? AND status = 'blocked' ORDER BY log_date ASC",
+            (start, today),
+        ).fetchall()
+
+        lines += ["", f"*Rollup ({start} → {today}):*", "", "_Done:_"]
+        lines += _group_by_tag_lines(done_range) or ["• Nothing completed in this range."]
+        lines += ["", "_In Progress:_"]
+        lines += _group_by_tag_lines(in_progress_range) or ["• Nothing in progress in this range."]
+        lines += ["", "_Blocked:_"]
+        lines += _group_by_tag_lines(blocked_range) or ["• None 🎉"]
 
     conn.close()
     return "\n".join(lines)
