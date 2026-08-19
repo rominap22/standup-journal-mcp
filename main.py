@@ -107,7 +107,7 @@ def _tag_emoji(tag: str) -> str:
 
 
 def _tag_label(tag: str | None) -> str:
-    if not tag:
+    if not tag or tag.startswith("subtask:"):
         return ""
     return f"{_tag_emoji(tag)} {tag}"
 
