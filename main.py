@@ -210,6 +210,36 @@ def update_task_status(task_id: int, status: str) -> str:
     conn.close()
     return f"Task #{task_id} updated to '{status}': {row['description']}"
 
+@mcp.tool()
+def update_task_tag(task_id: int, tag: str | None) -> str:
+    """Change the tag on an existing logged task, without altering its
+    log_date, status, description, or ID.
+
+    Use this whenever the user wants to retroactively add, change, or
+    remove a category/tag on a task they already logged — e.g. "tag #12
+    as infra" or "remove the tag from #7". This is the correct tool for
+    that; do NOT delete and re-log the task, since that rewrites its
+    original log_date and loses history.
+
+    Pass tag=None (or an empty string) to clear an existing tag.
+
+    Note: if the task has subtasks (other tasks tagged "subtask:<task_id>"),
+    those are untouched by this call — only task_id's own tag changes.
+    """
+    conn = get_db()
+    row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+    if row is None:
+        conn.close()
+        return f"No task found with id {task_id}."
+
+    new_tag = tag if tag else None
+    conn.execute("UPDATE tasks SET tag = ? WHERE id = ?", (new_tag, task_id))
+    conn.commit()
+    conn.close()
+
+    if new_tag:
+        return f"Task #{task_id} tagged: {_tag_label(new_tag)} — {row['description']}"
+    return f"Task #{task_id} tag cleared — {row['description']}"
 
 @mcp.tool()
 def get_tasks_by_date(log_date: str, tag: str | None = None) -> str:
